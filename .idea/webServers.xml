@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="632b239f-f422-4753-b5e4-4f1925e30de5" name="Netty" url="http://52.78.88.227">
+        <fileTransfer host="52.78.88.227" port="22" rootFolder="/var/www/html/Netty" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions controlEncoding="UTF-8" dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+      <webServer id="4ef98017-1a26-41a7-b214-e10964e36f6e" name="Phase_1" url="http://timon11.vps.phps.kr">
+        <fileTransfer host="timon11.vps.phps.kr" port="22" rootFolder="/home/MultiChat_1" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="22" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
