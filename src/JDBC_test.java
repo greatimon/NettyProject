@@ -26,8 +26,7 @@ public class JDBC_test extends Thread implements Runnable{
             select();
 
         } catch (ClassNotFoundException cnfe){
-            System.out.println("Could not find the JDBC drive" +
-                    "r!");
+            System.out.println("Could not find the JDBC drive");
             System.exit(1);
         }
         catch (SQLException sqle) {
@@ -56,10 +55,10 @@ public class JDBC_test extends Thread implements Runnable{
                     jsonObject.put(rmd.getColumnName(i),rs.getString(rmd.getColumnName(i)));
                 }
 
-                // 해당 JSONObject 를 Gson 과 Users 객체를 이용해서 user 객체로 변환
-                String jsonString = jsonObject.toString();
+                // 해당 JSONObject 를 Gson 과 String 객체를 이용해서 user 객체로 변환
+                String jsonChatlog = jsonObject.toString();
 
-                Users user = gson.fromJson(jsonString, Users.class);
+                Users user = gson.fromJson(jsonChatlog, Users.class);
 
                 // 결과 값 확인하기
                 System.out.println(user.getUser_no());

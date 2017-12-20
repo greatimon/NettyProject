@@ -21,27 +21,7 @@
     <orderEntry type="module-library" exported="">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/libs/gson-2.8.0.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/libs/gson-2.8.0-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/libs/json-simple-1.1.1.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/libs/json-lib-2.4-jdk15.jar!/" />
+          <root url="jar://$MODULE_DIR$/libs/json-20170516.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -50,10 +30,12 @@
     <orderEntry type="module-library" exported="">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/libs/json-20170516.jar!/" />
+          <root url="jar://$MODULE_DIR$/libs/gson-2.8.2.jar!/" />
         </CLASSES>
         <JAVADOC />
-        <SOURCES />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/libs/gson-2.8.2-sources.jar!/" />
+        </SOURCES>
       </library>
     </orderEntry>
   </component>
