@@ -20,32 +20,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     }
 
 
-    /**---------------------------------------------------------------------------
-     콜백메소드 ==> handlerAdded -- 채널이 등록되었을 때 호출되는 콜백
-     ---------------------------------------------------------------------------*/
-    @Override
-    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("[SERVER]: Handler added");
-    }
-
-
-    /**---------------------------------------------------------------------------
-     콜백메소드 ==> channelActive -- 채널이 활성화가 되었을 때 호출되는 콜백
-     접속한 클라이언트에게 정상접속되었음을 알리는 메세지 보내기
-     ---------------------------------------------------------------------------*/
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("[SERVER]: "+ctx.channel().remoteAddress() + ", 클라이언트 접속");
-
-        /** 클라이언트에게 채팅 서버 접속 완료되었다는 콜백메세지 보내기 */
-        Data_for_netty call_back_data = new Data_for_netty();
-        call_back_data.setNetty_type("conn");
-        call_back_data.setSubType("call_back");
-        // 통신 전송 메소드 호출
-        send_to_client(ctx.channel(), call_back_data);
-    }
-
-
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object obj) throws Exception {
         /** 통신메세지 received - 접속한 클라이언트 */
@@ -66,14 +40,16 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
 
         // 서버가 통신 메세지 받은 시간을, chat_log의 Transmission_gmt_time 에 set
-        if(data.getChat_log() != null) {
-            data.getChat_log().setTransmission_gmt_time(System.currentTimeMillis());
+        if(data != null) {
+            if(data.getChat_log() != null && ctx.channel().isOpen()) {
+                data.getChat_log().setTransmission_gmt_time(System.currentTimeMillis());
+            }
         }
-
 
         /************************************************************************
                                         통신 메세지 구분
          ************************************************************************/
+        if(data != null) {  // 넘어온 데이터가 null 아닐때
         switch (data.getNetty_type()) {
             /** 접속 메시지 일 때 - 접속한 클라이언트의 channel을 ConcurrentHashMap에 저장한다 */
             case "conn":
@@ -389,28 +365,31 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                         // jdbc를 통해서 message 테이블에도 db를 업데이트 한다
                         //=====================================================================================
                         // user_no 가 담긴 ArrayList를 StringBuilder를 통해 하나의 String으로 변환
-                        StringBuilder user_no_list_for_save_DB = new StringBuilder();
+                        StringBuilder subject_user_no_list_str = new StringBuilder();
                         for(int k=0; k<user_no_list.size(); k++) {
                             if(k == user_no_list.size()-1) {
-                                user_no_list_for_save_DB.append(user_no_list.get(k));
+                                subject_user_no_list_str.append(user_no_list.get(k));
                             }
                             else {
-                                user_no_list_for_save_DB.append(user_no_list.get(k)).append(Static.SPLIT);
+                                subject_user_no_list_str.append(user_no_list.get(k)).append(Static.SPLIT);
                             }
                         }
-                        System.out.println("user_no_list_for_save_DB: " + user_no_list_for_save_DB);
+                        System.out.println("subject_user_no_list_str: " + subject_user_no_list_str);
 
                         Connection conn_4 = null;
                         PreparedStatement pstmt_4 = null;
                         try {
                             conn_4 = getConnection();
                             pstmt_4 = conn_4.prepareStatement("update message set msg_unread_user_no_list = ? where msg_no = ?");
-                            pstmt_4.setString(1, String.valueOf(user_no_list_for_save_DB));
+                            pstmt_4.setString(1, String.valueOf(subject_user_no_list_str));
                             pstmt_4.setInt(2, insert_msg_no);
 
                             int update_msg_unread_user_no_list = pstmt_4.executeUpdate();
                             if(update_msg_unread_user_no_list == 1) {
                                 System.out.println(String.valueOf(insert_msg_no) + "번 메세지를 읽을 수 있는 대상을 담은 user_no_list_jsonString 업데이트 성공");
+
+                                // 전달할 채팅 메세지 객체에, 이 채팅메세지를 읽어야하는 유저들이 들어있는 String 값을 set한다
+                                data.getChat_log().setMsg_unread_user_no_list(String.valueOf(subject_user_no_list_str));
 
                             }
                             else if(update_msg_unread_user_no_list == 0) {
@@ -453,13 +432,16 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
                 break;
         }
+        }
+
+
     }
 
 
     /**---------------------------------------------------------------------------
      메소드 ==> 메세지를 보내야 하는 사람들의 user_no가 있는 arrayList를 받아서, 해당 사람들에게만 메세지를 보냄
      ---------------------------------------------------------------------------*/
-    public void send_to_clients_plural(final ArrayList<String> list, final Data_for_netty data) {
+    public static void send_to_clients_plural(final ArrayList<String> list, final Data_for_netty data) {
 
         System.out.println("Chat_server.clients.size(): "+Chat_server.clients.size());
 //        System.out.println("list.get(0): "+list.get(0));
@@ -478,7 +460,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     /**---------------------------------------------------------------------------
      메소드 ==> Netty 를 통해 연결된 서버로 통신메세지 보내기
      ---------------------------------------------------------------------------*/
-    public void send_to_client(final Channel channel, final Data_for_netty data) {
+    public static void send_to_client(final Channel channel, final Data_for_netty data) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -494,35 +476,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     public void channelReadComplete(ChannelHandlerContext ctx) {
         System.out.println("[SERVER]: ====================================== channelReadComplete ====================================== ");
 //        ctx.flush();
-    }
-
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("[SERVER]: "+ctx.channel().remoteAddress() + ", 클라이언트 접속 끊어짐");
-    }
-
-
-    @Override
-    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("[SERVER]: Handler removed");
-
-        System.out.println("[SERVER]: 접속중인 클라이언트 수_ " + Chat_server.clients.size());
-
-        for (String key : Chat_server.clients.keySet()) {
-            System.out.print("key=" + key);
-            System.out.println(" value=" + Chat_server.clients.get(key).toString());
-
-            System.out.println("isActive: " + Chat_server.clients.get(key).isActive());
-            System.out.println("isOpen: " + Chat_server.clients.get(key).isOpen());
-            System.out.println("isRegistered: " + Chat_server.clients.get(key).isRegistered());
-            System.out.println("isWritable: " + Chat_server.clients.get(key).isWritable());
-
-            if(!Chat_server.clients.get(key).isActive()) {
-                Chat_server.clients.remove(key);
-                System.out.println("[SERVER]: 비정상적 클라이언트 해쉬맵 제거 후, 접속중인 클라이언트 수_ "
-                        + Chat_server.clients.size());
-            }
-        }
     }
 
 
