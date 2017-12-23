@@ -49,10 +49,10 @@ public class GatheringHandler extends ChannelInboundHandlerAdapter {
         count++;
         // 클라이언트가 보낸 통신메세지 확인하기
         String temp_2 = (String) obj;
-        String message = temp_2.replace(" ", "");
-        System.out.println("==================== GatheringHandler_ message[" + count + "] -" + message + " ====================");
+//        String message = temp_2.replace(" ", "");
+        System.out.println("==================== GatheringHandler_ message[" + count + "] -" + temp_2 + " ====================");
 
-        temp = temp + message;
+        temp = temp + temp_2;
     }
 
 

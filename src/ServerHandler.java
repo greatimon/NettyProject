@@ -27,12 +27,12 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         /** try 1. */
         // 클라이언트가 보낸 통신메세지 확인하기
         String temp_2 = (String)obj;
-        String message = temp_2.replace(" ", "");
-        System.out.println("[유저]: " + message);
+//        String message = temp_2.replace(" ", "");
+        System.out.println("[유저]: " + temp_2);
 
         // 에러 메세지
         // ==> com.google.gson.stream.MalformedJsonException: Unterminated string at line 1 column 289 path $.type
-        JsonReader reader = new JsonReader(new StringReader(message));
+        JsonReader reader = new JsonReader(new StringReader(temp_2));
         reader.setLenient(true);
         Gson gson = new GsonBuilder().setLenient().create();
         // 받은 통신 메세지 data 객체화
@@ -124,6 +124,8 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 if(data.getSubType().equals("update_chat_log")) {
                     int first_read_msg_no = Integer.parseInt(data.getFirst_read_msg_no());
                     int last_read_msg_no = Integer.parseInt(data.getLast_read_msg_no());
+                    System.out.println("first_read_msg_no: " + first_read_msg_no);
+                    System.out.println("last_read_msg_no: " + last_read_msg_no);
 
                     // 최종적으로 전달할 값을 담을 변수
                     String unread_msg_count_info_jsonString = "";
@@ -139,9 +141,10 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                     try {
                         conn_request = getConnection();
                         pstmt_request = conn_request.prepareStatement(
-                                "select * from message where msg_no>=? and msg_no<=?");
+                                "select * from message where msg_no>=? and msg_no<=? and chat_room_no = ?");
                         pstmt_request.setInt(1, first_read_msg_no);
                         pstmt_request.setInt(2, last_read_msg_no);
+                        pstmt_request.setInt(3, Integer.parseInt(request_chatRoom_no));
 
                         rs_request = pstmt_request.executeQuery();
 
@@ -191,9 +194,24 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                     send_to_clients_plural(user_no_list, data);
 
                 }
+                break;
 
+            /** update_chat_log를 잘 받았다는 콜백 통신메세지 일때 */
+            case "update_chat_log_complete":
+                // 채팅 발신자 user_no
+                String sender_user_no = data.getSender_user_no();
+                System.out.println("발신자 user_no: " + sender_user_no + "번");
+
+                // 채팅방 번호
+                String chatroom_no = data.getExtra();
+                System.out.println("발신자 chatroom_no: " + chatroom_no + "번");
+
+                // 채팅 발신자한테 잘 받았다고 다시 콜백 보내기
+                data.setSubType("call_back");
+                send_to_client(ctx.channel(), data);
 
                 break;
+
 
             /** 채팅 메세지일 때 */
             case "msg":
@@ -376,6 +394,17 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                         }
                         System.out.println("subject_user_no_list_str: " + subject_user_no_list_str);
 
+//                        String subject_user_no_list_str = "";
+//                        for(int k=0; k<user_no_list.size(); k++) {
+//                            if(k == user_no_list.size()-1) {
+//                                subject_user_no_list_str = subject_user_no_list_str + user_no_list.get(k);
+//                            }
+//                            else {
+//                                subject_user_no_list_str = subject_user_no_list_str + user_no_list.get(k) + Static.SPLIT;
+//                            }
+//                        }
+//                        System.out.println("subject_user_no_list_str: " + subject_user_no_list_str);
+
                         Connection conn_4 = null;
                         PreparedStatement pstmt_4 = null;
                         try {
@@ -393,7 +422,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
                             }
                             else if(update_msg_unread_user_no_list == 0) {
-                                System.out.println(String.valueOf(insert_msg_no) + "번 메세지를 읽을 수 있는 대상을 담은 user_no_list_jsonString 업데이트 성공");
+                                System.out.println(String.valueOf(insert_msg_no) + "번 메세지를 읽을 수 있는 대상을 담은 user_no_list_jsonString 업데이트 실패");
                             }
                         }
                         catch (Exception e) {
@@ -440,6 +469,8 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     /**---------------------------------------------------------------------------
      메소드 ==> 메세지를 보내야 하는 사람들의 user_no가 있는 arrayList를 받아서, 해당 사람들에게만 메세지를 보냄
+            그러나!!!!!! 현재 netty 서버에 연결되어 있지 않은 클라이언트들도 있을 수 있으므로,
+            현재 접속중인 클라이언트일 경우에만 메세지를 보낸다
      ---------------------------------------------------------------------------*/
     public static void send_to_clients_plural(final ArrayList<String> list, final Data_for_netty data) {
 
@@ -449,10 +480,13 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         for(int i=0; i<list.size(); i++) {
             Gson gson = new Gson();
             String data_chatlog = gson.toJson(data);
-            Channel channel = Chat_server.clients.get(list.get(i));
-            System.out.println("[메세지를 전달 받을 유저 번호: " + list.get(i) + "번]");
+            // 해당 유저가 네티에 접속중인지 확인
+            if(Chat_server.clients.containsKey(list.get(i))) {
+                Channel channel = Chat_server.clients.get(list.get(i));
+                System.out.println("[메세지를 전달 받을 유저 번호: " + list.get(i) + "번]");
 
-            channel.writeAndFlush(data_chatlog);
+                channel.writeAndFlush(data_chatlog);
+            }
 //            channel.writeAndFlush(messageBuffer);
         }
     }
