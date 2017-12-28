@@ -111,7 +111,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 }
                 break;
 
-            /** 클라이언트로 부터 요청이 왔을 때 */
+            /** 채팅 관련하여 클라이언트로 부터 요청이 왔을 때 */
             case "request":
                 String request_user_no = data.getSender_user_no();
                 String request_chatRoom_no = data.getExtra();
@@ -154,7 +154,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                             unread_msg_count_info.put(msg_no, msg_unread_count);
                         }
 
-                        // 새로 받은 unread_msg_count를 담은 해쉬맵을 jsonString으로 변환
+                        // TODO: 새로 받은 unread_msg_count를 담은 해쉬맵을 jsonString으로 변환
                         JSONObject jsonObject = new JSONObject();
                         for (String key : unread_msg_count_info.keySet()) {
                             jsonObject.put(key, unread_msg_count_info.get(key));
@@ -459,6 +459,30 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                     if (rs_2 != null) try {rs_2.close();}catch (Exception e) {}
                 }
 
+                break;
+
+            /** webRtc 관련 데이터일 때 */
+            case "webrtc":
+                // 상대방이 자기의 비디오 on/off 상태를 전달했을 때, 상대방에게 그대로 전달하기
+                if(data.getSubType().equals("sending_my_video_status")) {
+                    String webrtc_sender_user_no = data.getSender_user_no();
+                    String webrtc_target_user_no = data.getTarget_user_no();
+                    // Data_for_netty 객체의 'extra' 변수를 통해 현재 비디오의 상태를 전달받는다
+                    String webrtc_video_status = data.getExtra();
+                    System.out.println("[webrtc_ 비디오 on/off 상태를 보내온 유저: " + webrtc_sender_user_no + "번]");
+                    System.out.println("[webrtc_ 비디오 on/off 상태를 받을 유저: " + webrtc_target_user_no + "번]");
+                    System.out.println(
+                            "[webrtc_ " + webrtc_target_user_no + "번 의 비디오 상태: " + webrtc_video_status + "]");
+
+                    // 상대방의 비디오 on/off 상태를 중계하는 메세지임을 알리는 string 값을 subtype에 넣기
+                    data.setSubType("relay_video_status");
+
+                    if(Chat_server.clients.containsKey(webrtc_target_user_no)) {
+                        Channel target_user_channel = Chat_server.clients.get(webrtc_target_user_no);
+                        // 통신 전송 메소드 호출
+                        send_to_client(target_user_channel, data);
+                    }
+                }
                 break;
         }
         }
